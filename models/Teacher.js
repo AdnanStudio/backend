@@ -11,10 +11,18 @@ const teacherSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
-  subject: {
-    type: [String],
-    required: true
-  },
+  subjects: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Subject'
+  }],
+  classes: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Class'
+  }],
+  sections: [{
+    type: String,
+    enum: ['A', 'B', 'C', 'D', 'E']
+  }],
   qualification: {
     type: String,
     required: true
@@ -32,7 +40,10 @@ const teacherSchema = new mongoose.Schema({
     required: true
   },
   classTeacher: {
-    class: String,
+    class: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Class'
+    },
     section: String
   }
 }, {

@@ -45,6 +45,11 @@ const classRoutineRoutes = require('./routes/classRoutineRoutes');
 const assignmentRoutes = require('./routes/assignmentRoutes');
 const leaveRoutes = require('./routes/leaveRoutes'); // ✅ New
 
+// teacher traning, club managemt and teacher list
+const teacherTrainingRoutes = require('./routes/teacherTrainingRoutes');
+const clubRoutes = require('./routes/clubRoutes');
+const teacherListRoutes = require('./routes/teacherListRoutes');
+
 // Use Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
@@ -67,6 +72,11 @@ app.use('/api/admissions', admissionRoutes);
 app.use('/api/class-routines', classRoutineRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/leaves', leaveRoutes); // ✅ New
+
+// teacher traning, club managemt and teacher list
+app.use('/api/teacher-trainings', teacherTrainingRoutes);
+app.use('/api/club-members', clubRoutes);
+app.use('/api/teacher-list', teacherListRoutes);
 
 app.get('/', (req, res) => {
   res.json({

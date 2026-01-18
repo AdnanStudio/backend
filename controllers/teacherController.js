@@ -1,5 +1,8 @@
 const User = require('../models/User');
 const Teacher = require('../models/Teacher');
+const Subject = require('../models/Subject');
+const Class = require('../models/Class');
+const { cloudinary } = require('../config/cloudinary');
 
 // @desc    Create new teacher
 // @route   POST /api/teachers
@@ -14,7 +17,9 @@ exports.createTeacher = async (req, res) => {
       address,
       dateOfBirth,
       employeeId,
-      subject,
+      subjects,
+      classes,
+      sections,
       qualification,
       experience,
       salary,
@@ -39,13 +44,13 @@ exports.createTeacher = async (req, res) => {
       });
     }
 
-    // Profile image
+    // Upload profile image to Cloudinary
     let profileImage = 'https://via.placeholder.com/150';
     if (req.file) {
-      profileImage = req.file.path;
+      profileImage = req.file.path; // Cloudinary URL
     }
 
-    // User account create
+    // Create user account
     const user = await User.create({
       name,
       email,
@@ -57,26 +62,40 @@ exports.createTeacher = async (req, res) => {
       profileImage
     });
 
-    // Teacher record create
+    // Parse subjects, classes, sections
+    const subjectArray = Array.isArray(subjects) ? subjects : 
+                        subjects ? JSON.parse(subjects) : [];
+    const classArray = Array.isArray(classes) ? classes : 
+                      classes ? JSON.parse(classes) : [];
+    const sectionArray = Array.isArray(sections) ? sections : 
+                        sections ? JSON.parse(sections) : [];
+
+    // Create teacher record
     const teacher = await Teacher.create({
       userId: user._id,
       employeeId,
-      subject: Array.isArray(subject) ? subject : [subject],
+      subjects: subjectArray,
+      classes: classArray,
+      sections: sectionArray,
       qualification,
       experience: experience || 0,
       salary,
-      classTeacher
+      classTeacher: classTeacher ? JSON.parse(classTeacher) : undefined
     });
+
+    // Populate teacher data
+    const populatedTeacher = await Teacher.findById(teacher._id)
+      .populate('userId', 'name email phone address profileImage')
+      .populate('subjects', 'name code')
+      .populate('classes', 'name section');
 
     res.status(201).json({
       success: true,
       message: 'Teacher created successfully',
-      data: {
-        user,
-        teacher
-      }
+      data: populatedTeacher
     });
   } catch (error) {
+    console.error('Create Teacher Error:', error);
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -85,37 +104,49 @@ exports.createTeacher = async (req, res) => {
   }
 };
 
-// @desc    Get all teachers
+// @desc    Get all teachers with pagination
 // @route   GET /api/teachers
 // @access  Private
 exports.getAllTeachers = async (req, res) => {
   try {
-    const { subject, search } = req.query;
+    const { subject, search, page = 1, limit = 9 } = req.query;
 
     let query = {};
 
+    // Subject filter
     if (subject) {
-      query.subject = { $in: [subject] };
+      query.subjects = subject;
     }
 
     const teachers = await Teacher.find(query)
       .populate('userId', 'name email phone address profileImage dateOfBirth isActive')
+      .populate('subjects', 'name code')
+      .populate('classes', 'name section')
       .sort({ createdAt: -1 });
 
+    // Search filter
     let filteredTeachers = teachers;
     if (search) {
       filteredTeachers = teachers.filter(teacher =>
-        teacher.userId.name.toLowerCase().includes(search.toLowerCase()) ||
+        teacher.userId?.name?.toLowerCase().includes(search.toLowerCase()) ||
         teacher.employeeId.toLowerCase().includes(search.toLowerCase())
       );
     }
 
+    // Pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const paginatedTeachers = filteredTeachers.slice(startIndex, endIndex);
+
     res.status(200).json({
       success: true,
       count: filteredTeachers.length,
-      data: filteredTeachers
+      totalPages: Math.ceil(filteredTeachers.length / limit),
+      currentPage: parseInt(page),
+      data: paginatedTeachers
     });
   } catch (error) {
+    console.error('Get Teachers Error:', error);
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -130,7 +161,9 @@ exports.getAllTeachers = async (req, res) => {
 exports.getTeacher = async (req, res) => {
   try {
     const teacher = await Teacher.findById(req.params.id)
-      .populate('userId', 'name email phone address profileImage dateOfBirth isActive');
+      .populate('userId', 'name email phone address profileImage dateOfBirth isActive')
+      .populate('subjects', 'name code department')
+      .populate('classes', 'name section');
 
     if (!teacher) {
       return res.status(404).json({
@@ -162,7 +195,9 @@ exports.updateTeacher = async (req, res) => {
       phone,
       address,
       dateOfBirth,
-      subject,
+      subjects,
+      classes,
+      sections,
       qualification,
       experience,
       salary,
@@ -178,6 +213,7 @@ exports.updateTeacher = async (req, res) => {
       });
     }
 
+    // Update user data
     const userUpdateData = {
       name,
       phone,
@@ -185,25 +221,46 @@ exports.updateTeacher = async (req, res) => {
       dateOfBirth
     };
 
+    // Upload new image if provided
     if (req.file) {
+      // Delete old image from Cloudinary
+      const user = await User.findById(teacher.userId);
+      if (user.profileImage && !user.profileImage.includes('placeholder')) {
+        const publicId = user.profileImage.split('/').pop().split('.')[0];
+        await cloudinary.uploader.destroy(`school-management/users/${publicId}`);
+      }
       userUpdateData.profileImage = req.file.path;
     }
 
     await User.findByIdAndUpdate(teacher.userId, userUpdateData);
 
+    // Parse arrays
+    const subjectArray = Array.isArray(subjects) ? subjects : 
+                        subjects ? JSON.parse(subjects) : teacher.subjects;
+    const classArray = Array.isArray(classes) ? classes : 
+                      classes ? JSON.parse(classes) : teacher.classes;
+    const sectionArray = Array.isArray(sections) ? sections : 
+                        sections ? JSON.parse(sections) : teacher.sections;
+
+    // Update teacher data
     const teacherUpdateData = {
-      subject: Array.isArray(subject) ? subject : [subject],
+      subjects: subjectArray,
+      classes: classArray,
+      sections: sectionArray,
       qualification,
       experience,
       salary,
-      classTeacher
+      classTeacher: classTeacher ? JSON.parse(classTeacher) : teacher.classTeacher
     };
 
     const updatedTeacher = await Teacher.findByIdAndUpdate(
       req.params.id,
       teacherUpdateData,
       { new: true, runValidators: true }
-    ).populate('userId');
+    )
+      .populate('userId')
+      .populate('subjects', 'name code')
+      .populate('classes', 'name section');
 
     res.status(200).json({
       success: true,
@@ -211,6 +268,7 @@ exports.updateTeacher = async (req, res) => {
       data: updatedTeacher
     });
   } catch (error) {
+    console.error('Update Teacher Error:', error);
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -233,6 +291,13 @@ exports.deleteTeacher = async (req, res) => {
       });
     }
 
+    // Delete image from Cloudinary
+    const user = await User.findById(teacher.userId);
+    if (user.profileImage && !user.profileImage.includes('placeholder')) {
+      const publicId = user.profileImage.split('/').pop().split('.')[0];
+      await cloudinary.uploader.destroy(`school-management/users/${publicId}`);
+    }
+
     await User.findByIdAndDelete(teacher.userId);
     await Teacher.findByIdAndDelete(req.params.id);
 
@@ -250,15 +315,17 @@ exports.deleteTeacher = async (req, res) => {
 };
 
 // @desc    Get teachers by subject
-// @route   GET /api/teachers/subject/:subjectName
+// @route   GET /api/teachers/subject/:subjectId
 // @access  Private
 exports.getTeachersBySubject = async (req, res) => {
   try {
-    const { subjectName } = req.params;
+    const { subjectId } = req.params;
 
     const teachers = await Teacher.find({
-      subject: { $in: [subjectName] }
-    }).populate('userId', 'name email phone profileImage');
+      subjects: subjectId
+    })
+      .populate('userId', 'name email phone profileImage')
+      .populate('subjects', 'name code');
 
     res.status(200).json({
       success: true,
@@ -315,7 +382,9 @@ exports.getTeacherProfile = async (req, res) => {
   try {
     const teacher = await Teacher.findOne({ userId: req.user._id })
       .populate('userId', 'name email phone profileImage')
-      .populate('classTeacher.class');
+      .populate('subjects', 'name code')
+      .populate('classes', 'name section')
+      .populate('classTeacher.class', 'name section');
 
     if (!teacher) {
       return res.status(404).json({

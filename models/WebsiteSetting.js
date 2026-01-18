@@ -4,19 +4,19 @@ const websiteSettingSchema = new mongoose.Schema({
   schoolName: {
     type: String,
     required: true,
-    default: 'IDEAL COLLEGE'
+    default: 'MALKHANAGAR COLLEGE'
   },
   schoolAddress: {
     type: String,
-    default: 'Dhanmondi, Dhaka'
+    default: 'Shirajdikhan, Dhaka'
   },
   schoolPhone: {
     type: String,
-    default: '+880 1234-567890'
+    default: '+880 1234-xxxxxx'
   },
   schoolEmail: {
     type: String,
-    default: 'info@idealcollege.edu.bd'
+    default: 'malkhanagarcollege@gmail.com'
   },
   logo: {
     type: String,
