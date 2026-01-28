@@ -33,9 +33,7 @@ const subjectSchema = new mongoose.Schema({
   },
   credits: {
     type: Number,
-    default: 1,
-    min: 1,
-    max: 10
+    default: 0
   },
   type: {
     type: String,

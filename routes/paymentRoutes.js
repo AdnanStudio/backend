@@ -7,7 +7,8 @@ const {
   getPaymentRequest,
   submitPaymentProof,
   updatePaymentStatus,
-  deletePaymentRequest
+  deletePaymentRequest,
+  deleteAllPayments
 } = require('../controllers/paymentController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -16,6 +17,9 @@ router.use(protect);
 router.route('/')
   .get(getAllPaymentRequests)
   .post(authorize('admin', 'teacher'), createPaymentRequest);
+
+// ✅ Delete all payments route (MUST be before /:id route)
+router.delete('/all/delete-all', authorize('admin'), deleteAllPayments);
 
 router.route('/:id')
   .get(getPaymentRequest)

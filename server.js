@@ -43,12 +43,11 @@ const subjectRoutes = require('./routes/subjectRoutes');
 const admissionRoutes = require('./routes/admissionRoutes');
 const classRoutineRoutes = require('./routes/classRoutineRoutes');
 const assignmentRoutes = require('./routes/assignmentRoutes');
-const leaveRoutes = require('./routes/leaveRoutes'); // ✅ New
-
-// teacher traning, club managemt and teacher list
+const leaveRoutes = require('./routes/leaveRoutes');
 const teacherTrainingRoutes = require('./routes/teacherTrainingRoutes');
 const clubRoutes = require('./routes/clubRoutes');
 const teacherListRoutes = require('./routes/teacherListRoutes');
+const libraryRoutes = require('./routes/libraryRoutes'); // ✅ NEW
 
 // Use Routes
 app.use('/api/auth', authRoutes);
@@ -71,12 +70,11 @@ app.use('/api/subjects', subjectRoutes);
 app.use('/api/admissions', admissionRoutes);
 app.use('/api/class-routines', classRoutineRoutes);
 app.use('/api/assignments', assignmentRoutes);
-app.use('/api/leaves', leaveRoutes); // ✅ New
-
-// teacher traning, club managemt and teacher list
+app.use('/api/leaves', leaveRoutes);
 app.use('/api/teacher-trainings', teacherTrainingRoutes);
 app.use('/api/club-members', clubRoutes);
 app.use('/api/teacher-list', teacherListRoutes);
+app.use('/api/library', libraryRoutes); // ✅ NEW
 
 app.get('/', (req, res) => {
   res.json({
@@ -109,7 +107,6 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
-
 
 
 // const express = require('express');

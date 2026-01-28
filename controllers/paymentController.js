@@ -212,12 +212,12 @@ exports.updatePaymentStatus = async (req, res) => {
   }
 };
 
-// @desc    Delete payment request
+// @desc    Delete single payment request
 // @route   DELETE /api/payments/:id
-// @access  Private (Admin)
+// @access  Private (Admin only)
 exports.deletePaymentRequest = async (req, res) => {
   try {
-    const payment = await PaymentRequest.findByIdAndDelete(req.params.id);
+    const payment = await PaymentRequest.findById(req.params.id);
 
     if (!payment) {
       return res.status(404).json({
@@ -226,9 +226,32 @@ exports.deletePaymentRequest = async (req, res) => {
       });
     }
 
+    await PaymentRequest.findByIdAndDelete(req.params.id);
+
     res.status(200).json({
       success: true,
       message: 'Payment request deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Delete all payment requests
+// @route   DELETE /api/payments/all/delete-all
+// @access  Private (Admin only)
+exports.deleteAllPayments = async (req, res) => {
+  try {
+    const result = await PaymentRequest.deleteMany({});
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully deleted ${result.deletedCount} payment requests`,
+      deletedCount: result.deletedCount
     });
   } catch (error) {
     res.status(500).json({

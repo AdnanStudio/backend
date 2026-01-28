@@ -9,11 +9,10 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Storage for all files including PDFs
+// Storage for settings files (PDFs, images)
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
-    // Determine resource type based on file mimetype
     let resourceType = 'image';
     let format = undefined;
     
@@ -50,6 +49,19 @@ const userProfileStorage = new CloudinaryStorage({
   }
 });
 
+// ✅ NEW: Storage for book images
+const bookImageStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'school-management/books',
+    resource_type: 'image',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    transformation: [
+      { width: 600, height: 800, crop: 'limit' }
+    ]
+  }
+});
+
 const upload = multer({ 
   storage: storage,
   limits: {
@@ -68,7 +80,7 @@ const upload = multer({
 const uploadUserProfile = multer({
   storage: userProfileStorage,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit for profile pics
+    fileSize: 5 * 1024 * 1024 // 5MB limit
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
@@ -79,4 +91,24 @@ const uploadUserProfile = multer({
   }
 });
 
-module.exports = { cloudinary, upload, uploadUserProfile };
+// ✅ NEW: Upload for book images
+const uploadBookImage = multer({
+  storage: bookImageStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
+
+module.exports = { 
+  cloudinary, 
+  upload, 
+  uploadUserProfile,
+  uploadBookImage // ✅ NEW
+};
